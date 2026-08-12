@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 BOT_TOKEN = "8679389121:AAGMOtJTy2xJ8EDJNomL0QyBtYlMb2KdoA4"
-CHANNEL = "@https://t.me/tigermark_et"
+CHANNEL = "@tigermark_et"
 
 db = sqlite3.connect("demo.db", check_same_thread=False)
 db.execute("""
@@ -71,7 +71,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     keyboard = [
-        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/YOUR_CHANNEL")],
+        [InlineKeyboardButton("📢 Join Channel", url="https://t.me/tigermark_et")],
         [InlineKeyboardButton("✅ Verify Join", callback_data="verify")],
         [InlineKeyboardButton("👥 Refer & Earn", callback_data="refer")],
         [InlineKeyboardButton("💰 Balance", callback_data="balance")]
