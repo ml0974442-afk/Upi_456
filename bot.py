@@ -1,0 +1,156 @@
+import os
+import asyncio
+from threading import Thread
+from flask import Flask
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
+
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+CHANNEL = "@tigermark_et"
+
+# Render Web Service के लिए HTTP server
+web = Flask(__name__)
+
+@web.route("/")
+def home():
+    return "Demo bot is running."
+
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    web.run(host="0.0.0.0", port=port)
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📢 Join Channel",
+                url=f"https://t.me/{CHANNEL.lstrip('@')}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "✅ Verify Join",
+                callback_data="verify"
+            )
+        ]
+    ]
+
+    await update.message.reply_text(
+        "🤖 *DEMO BOT*\n\n"
+        "⚠️ SIMULATION ONLY\n\n"
+        "पहले हमारा channel join करो, "
+        "फिर नीचे Verify Join दबाओ।",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    try:
+        member = await context.bot.get_chat_member(
+            CHANNEL,
+            query.from_user.id
+        )
+
+        if member.status in ("member", "administrator", "creator"):
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        "🎬 Start Demo",
+                        callback_data="demo"
+                    )
+                ]
+            ]
+
+            await query.edit_message_text(
+                "✅ *CHANNEL VERIFIED*\n\n"
+                "अब तुम demo शुरू कर सकते हो।",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        else:
+            await query.answer(
+                "❌ पहले channel join करो।",
+                show_alert=True
+            )
+
+    except Exception:
+        await query.answer(
+            "⚠️ Verification नहीं हो पाई। "
+            "Check करो कि bot channel में admin है।",
+            show_alert=True
+        )
+
+
+async def demo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    msg = await query.edit_message_text(
+        "🔄 *Starting demo...*",
+        parse_mode="Markdown"
+    )
+
+    stages = [
+        "🔄 Processing demo...",
+        "🔍 Running simulation...",
+        "⚡ Simulating response...",
+        "📡 Simulating server response...",
+        "⏳ Finalizing demo..."
+    ]
+
+    for stage in stages:
+        await asyncio.sleep(2)
+        await msg.edit_text(
+            f"{stage}\n\n"
+            "⚠️ SIMULATION ONLY",
+            parse_mode="Markdown"
+        )
+
+    await msg.edit_text(
+        "✅ *DEMO COMPLETED*\n\n"
+        "Status: `SIMULATED SUCCESS`\n\n"
+        "No payment or real UPI request was sent.",
+        parse_mode="Markdown"
+    )
+
+
+async def button_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    query = update.callback_query
+
+    if query.data == "verify":
+        await verify(update, context)
+
+    elif query.data == "demo":
+        await demo(update, context)
+
+
+def main():
+    Thread(target=run_web, daemon=True).start()
+
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+
+    print("Demo bot running...")
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
